@@ -192,11 +192,13 @@
 	border-radius: var(--modal-radius) var(--modal-radius) 0 0;
 	animation: sb-sheet-up 180ms cubic-bezier(0.33, 1, 0.68, 1);
 	max-height: 85vh;
-	/* The sheet meets the screen edge, so the space has to come from inside it — otherwise the
-	   last line sits under the home indicator or navigation bar. Obsidian sets `padding: 0` on
-	   phone modals, hence spelling the bottom out here.
-	   The plain value comes first as a fallback: if a device does not support env(), only the
-	   second declaration is dropped. */
+}
+
+/* The sheet meets the screen edge, so the breathing room has to come from inside the content
+   box — that is the part that scrolls, and where Obsidian puts its own padding on phones.
+   Plain value first as a fallback: if a device does not understand env(), only the second
+   declaration is dropped. */
+.is-mobile .modal-container.sb-sheet .modal-content {
 	padding-bottom: 32px;
 	padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
 }
