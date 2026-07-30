@@ -194,13 +194,16 @@
 	max-height: 85vh;
 }
 
-/* The sheet meets the screen edge, so the breathing room has to come from inside the content
-   box — that is the part that scrolls, and where Obsidian puts its own padding on phones.
-   Plain value first as a fallback: if a device does not understand env(), only the second
-   declaration is dropped. */
-.is-mobile .modal-container.sb-sheet .modal-content {
-	padding-bottom: 32px;
-	padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+/* The sheet ends at the screen edge, so the last row would sit right on it. Bottom padding is
+   unreliable here — the content box is a scrolling flex column, where browsers drop it, and
+   Obsidian sets the padding shorthand on it anyway. A spacer element always takes up its space,
+   so use one instead. */
+.is-mobile .modal-container.sb-sheet .modal-content::after {
+	content: "";
+	display: block;
+	flex: 0 0 auto;
+	height: 32px;
+	height: calc(32px + env(safe-area-inset-bottom, 0px));
 }
 
 @keyframes sb-sheet-up {
