@@ -115,19 +115,9 @@
 	text-decoration: line-through;
 }
 
-/* Held down on touch, ready to be dragged */
-.sb-item.sb-press {
-	background: var(--background-modifier-hover);
-}
-
-/* The row being dragged */
-.sb-item.sb-dragging {
-	opacity: 0.5;
-}
-
-/* While dragging, the gesture must not scroll the panel as well */
-.sb-view.sb-drag-active .sb-tree {
-	touch-action: none;
+/* Keep a long press from triggering the OS text-selection callout on touch */
+.sb-item {
+	-webkit-touch-callout: none;
 }
 
 /* Drop indicators: block highlight when dropping into a group, insertion line otherwise */
@@ -168,6 +158,33 @@
 .sb-prompt input[type="text"],
 .sb-prompt input[type="search"] {
 	width: 100%;
+}
+
+/* ---------- Dialogs as a bottom sheet on mobile (desktop unchanged) ----------
+   Obsidian centers modals and animates them downwards when closing, which reads oddly for a
+   dialog that appeared in mid-air. Anchoring ours to the bottom edge and sliding it up on open
+   makes the open and close motions match. Duration and easing are Obsidian's own values
+   (180ms / cubic-bezier(0.33, 1, 0.68, 1)), the same ones it animates mobile notices with. */
+
+.is-mobile .modal-container.sb-sheet {
+	align-items: flex-end;
+}
+
+.is-mobile .modal-container.sb-sheet .modal,
+.is-mobile .modal-container.sb-sheet .prompt {
+	width: 100%;
+	max-width: 100%;
+	border-radius: var(--modal-radius) var(--modal-radius) 0 0;
+	animation: sb-sheet-up 180ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+@keyframes sb-sheet-up {
+	from {
+		transform: translateY(100%);
+	}
+	to {
+		transform: translateY(0);
+	}
 }
 
 /* Add/edit modal buttons: Delete left, Save/Cancel right */

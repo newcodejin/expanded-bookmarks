@@ -36,7 +36,8 @@ export abstract class DomWatcher {
 	private schedule(): void {
 		if (this.scheduled) return;
 		this.scheduled = true;
-		requestAnimationFrame(() => {
+		// window.requestAnimationFrame, not the bare global, so this also works in popout windows
+		window.requestAnimationFrame(() => {
 			this.scheduled = false;
 			this.apply();
 		});

@@ -12,7 +12,7 @@ export class SBSettingTab extends PluginSettingTab {
 
 	// Description plus an optional "※ …" note on its own line
 	private desc(text: string, note?: string): DocumentFragment {
-		const frag = document.createDocumentFragment();
+		const frag = createFragment();
 		frag.append(text);
 		if (note) frag.append(createEl("br"), createSpan({ text: note, cls: "sb-setting-note" }));
 		return frag;

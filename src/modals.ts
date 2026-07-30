@@ -7,6 +7,22 @@ import { T } from "./strings";
 
 type GroupChoice = { group: BmItem | null; label: string };
 
+// Bases for this plugin's dialogs. On mobile they slide up from the bottom edge as a sheet
+// instead of appearing in the middle (see .sb-sheet in styles.css); desktop is unchanged.
+class SheetModal extends Modal {
+	constructor(app: App) {
+		super(app);
+		this.containerEl.addClass("sb-sheet");
+	}
+}
+
+abstract class SheetSuggestModal<T> extends FuzzySuggestModal<T> {
+	constructor(app: App) {
+		super(app);
+		this.containerEl.addClass("sb-sheet");
+	}
+}
+
 // Render an "A / B / C" path label as a hierarchy:
 // show only the last name, indented by depth (the list is in DFS order, so it reads as a tree)
 function renderGroupPath(el: HTMLElement, label: string): void {
@@ -16,7 +32,7 @@ function renderGroupPath(el: HTMLElement, label: string): void {
 	el.setText(segs[segs.length - 1] ?? label);
 }
 
-export class GroupPickerModal extends FuzzySuggestModal<GroupChoice> {
+export class GroupPickerModal extends SheetSuggestModal<GroupChoice> {
 	constructor(
 		app: App,
 		private root: BmItem[],
@@ -29,9 +45,9 @@ export class GroupPickerModal extends FuzzySuggestModal<GroupChoice> {
 	}
 
 	getItems(): GroupChoice[] {
-		const groups = allGroups(this.root)
+		const groups: GroupChoice[] = allGroups(this.root)
 			.filter((g) => !this.excludeIds.has(g.group.id))
-			.map((g) => ({ group: g.group as BmItem | null, label: g.label }));
+			.map((g) => ({ group: g.group, label: g.label }));
 		return [{ group: null, label: T.rootGroupName }, ...groups];
 	}
 
@@ -50,7 +66,7 @@ export class GroupPickerModal extends FuzzySuggestModal<GroupChoice> {
 }
 
 // Pick a .json file from the vault (for importing an export file)
-export class JsonFilePickerModal extends FuzzySuggestModal<TFile> {
+export class JsonFilePickerModal extends SheetSuggestModal<TFile> {
 	constructor(app: App, private onPick: (file: TFile) => void) {
 		super(app);
 		this.setPlaceholder(T.pickJsonPlaceholder);
@@ -69,7 +85,7 @@ export class JsonFilePickerModal extends FuzzySuggestModal<TFile> {
 	}
 }
 
-export class FolderPickerModal extends FuzzySuggestModal<TFolder> {
+export class FolderPickerModal extends SheetSuggestModal<TFolder> {
 	constructor(app: App, private onPick: (folder: TFolder) => void) {
 		super(app);
 		this.setPlaceholder(T.pickFolderPlaceholder);
@@ -88,7 +104,7 @@ export class FolderPickerModal extends FuzzySuggestModal<TFolder> {
 	}
 }
 
-export class TextPromptModal extends Modal {
+export class TextPromptModal extends SheetModal {
 	private value: string;
 
 	constructor(
@@ -140,7 +156,7 @@ export interface BookmarkEditResult {
 // Add/edit a bookmark: original name (read-only), custom name, and a group dropdown.
 // The group is chosen by id, so it never lands in the wrong group (unlike free-text matching).
 // Pressing Enter saves; the group defaults to the top level, so a quick Enter adds there.
-export class BookmarkEditModal extends Modal {
+export class BookmarkEditModal extends SheetModal {
 	private title: string;
 	private groupId: string | null;
 
@@ -221,7 +237,7 @@ export class BookmarkEditModal extends Modal {
 	}
 }
 
-export class ConfirmModal extends Modal {
+export class ConfirmModal extends SheetModal {
 	constructor(
 		app: App,
 		private title: string,

@@ -1,7 +1,7 @@
 // Expanded Bookmarks plugin entry point
 
 import { Notice, Plugin, TAbstractFile, TFile, TFolder, WorkspaceLeaf } from "obsidian";
-import { BmItem, DEFAULT_SETTINGS, SBData, newId } from "./types";
+import { BmItem, DEFAULT_SETTINGS, HIGHLIGHT_COLOR, SBData, newId } from "./types";
 import { ImportSource, applyRename, findById, findDuplicates, flatten, groupChoices, importItem, itemsPointingTo, moveItems, originalName, parentGroupId, removeItems, toCoreItem, validateAll } from "./data";
 import { BookmarkEditModal, ConfirmModal, JsonFilePickerModal } from "./modals";
 import { ExplorerHighlighter } from "./explorer";
@@ -61,14 +61,43 @@ export default class ExpandedBookmarksPlugin extends Plugin {
 			this.app.vault.on("rename", (file, oldPath) => void this.onFileRenamed(oldPath, file.path))
 		);
 
-		// Add "bookmark this" and "reveal in panel" entries to the file context menu
+		// Bookmark actions in the file menu — the file explorer's context menu and, for an open
+		// file, the ⋮ menu in its header. This is how the actions stay reachable on mobile,
+		// where the panel's rows have no context menu of their own.
 		this.registerEvent(
 			this.app.workspace.on("file-menu", (menu, file) => {
-				menu.addItem((i) =>
-					i.setTitle(T.menuAddBookmark).setIcon("bookmark").onClick(() => void this.addBookmarkFor(file))
-				);
+				const bm = this.bookmarkFor(file);
+				if (!bm) {
+					menu.addItem((i) =>
+						i.setTitle(T.menuAddBookmark).setIcon("bookmark").onClick(() => void this.addBookmarkFor(file))
+					);
+					return;
+				}
 				menu.addItem((i) =>
 					i.setTitle(T.menuReveal).setIcon("search").onClick(() => void this.revealInBookmarks(file))
+				);
+				menu.addItem((i) =>
+					i.setTitle(T.menuEditBookmark).setIcon("pencil").onClick(() => this.editBookmark(bm))
+				);
+				menu.addItem((i) =>
+					i.setTitle(T.menuHighlight).setIcon("palette").setChecked(!!bm.color).onClick(() => {
+						bm.color = bm.color ? undefined : HIGHLIGHT_COLOR;
+						void this.saveAndRefresh();
+					})
+				);
+				menu.addItem((i) =>
+					i.setTitle(bm.hidden ? T.menuUnhide : T.menuHide)
+						.setIcon(bm.hidden ? "eye" : "eye-off")
+						.onClick(() => {
+							bm.hidden = bm.hidden ? undefined : true;
+							void this.saveAndRefresh();
+						})
+				);
+				menu.addItem((i) =>
+					i.setTitle(T.menuRemove).setIcon("trash").onClick(() => {
+						removeItems(this.data.root, new Set([bm.id]));
+						void this.saveAndRefresh();
+					})
 				);
 			})
 		);
@@ -132,6 +161,12 @@ export default class ExpandedBookmarksPlugin extends Plugin {
 		return flatten(this.data.root).some((it) => it.type === "file" && it.path === path);
 	}
 
+	// The bookmark for this exact file or folder, if there is one
+	private bookmarkFor(file: TAbstractFile): BmItem | undefined {
+		const type = file instanceof TFolder ? "folder" : "file";
+		return flatten(this.data.root).find((it) => it.type === type && it.path === file.path && !it.subpath);
+	}
+
 	// Called from the settings toggle
 	setExplorerHighlight(on: boolean): void {
 		if (on) this.highlighter.enable();
@@ -168,7 +203,21 @@ export default class ExpandedBookmarksPlugin extends Plugin {
 
 	async saveAll(): Promise<void> {
 		await this.saveData(this.data);
-		// Refresh explorer markers, the search filter, and file-header markers when bookmarks change
+		this.refreshIntegrations();
+	}
+
+	// Called by Obsidian when data.json changed on disk from outside — typically Obsidian Sync
+	// delivering edits made on another device. Re-read it so the panel updates without a restart.
+	// Deliberately does not run validateAll(): a synced bookmark may point at a file that has
+	// not arrived yet, and treating it as broken would delete it.
+	async onExternalSettingsChange(): Promise<void> {
+		await this.loadAll();
+		this.refreshViews();
+		this.refreshIntegrations();
+	}
+
+	// Redraw everything this plugin adds outside the panel
+	private refreshIntegrations(): void {
 		this.highlighter.refresh();
 		this.searchFilter.refresh();
 		this.updateHeaderMarkers();
@@ -251,9 +300,7 @@ export default class ExpandedBookmarksPlugin extends Plugin {
 	async addBookmarkFor(file: TAbstractFile): Promise<void> {
 		const type = file instanceof TFolder ? "folder" : "file";
 		// If already bookmarked, open its edit dialog instead (also how you change its group)
-		const existing = flatten(this.data.root).find(
-			(it) => it.type === type && it.path === file.path && !it.subpath
-		);
+		const existing = this.bookmarkFor(file);
 		if (existing) {
 			this.editBookmark(existing);
 			return;
@@ -265,11 +312,11 @@ export default class ExpandedBookmarksPlugin extends Plugin {
 			initialTitle: "",
 			groups: groupChoices(this.data.root),
 			initialGroupId: null,
-			onSubmit: async ({ title, groupId }) => {
+			onSubmit: ({ title, groupId }) => {
 				const group = groupId ? findById(this.data.root, groupId) : null;
 				const list = group ? (group.items ?? (group.items = [])) : this.data.root;
 				list.push({ id: newId(), type, path: file.path, added: Date.now(), title });
-				await this.saveAndRefresh();
+				void this.saveAndRefresh();
 				new Notice(T.noticeAdded(original));
 			},
 		}).open();
@@ -373,28 +420,30 @@ export default class ExpandedBookmarksPlugin extends Plugin {
 	// Import from a JSON file in the vault — either this plugin's export (`root`)
 	// or a core Bookmarks file (`items`). Enables a full export → import round-trip.
 	importFromFile(): void {
-		new JsonFilePickerModal(this.app, async (file) => {
-			let parsed: any;
-			try {
-				parsed = JSON.parse(await this.app.vault.read(file));
-			} catch {
-				new Notice(T.noticeImportBadFile);
-				return;
-			}
-			// Our own export uses `root`; a core Bookmarks file uses `items`
-			const [raws, from]: [any[], ImportSource] = Array.isArray(parsed?.root)
-				? [parsed.root, "own"]
-				: Array.isArray(parsed?.items)
-					? [parsed.items, "core"]
-					: [[], "core"];
-			if (!raws.length) {
-				new Notice(T.noticeImportBadFile);
-				return;
-			}
-			const converted = raws.map((raw) => importItem(raw, from));
-			new ConfirmModal(this.app, T.confirmImportTitle, T.confirmImportBody(`"${file.name}"`), () => {
-				this.mergeImport(converted);
-			}).open();
+		new JsonFilePickerModal(this.app, (file) => void this.importFile(file)).open();
+	}
+
+	private async importFile(file: TFile): Promise<void> {
+		let parsed: any;
+		try {
+			parsed = JSON.parse(await this.app.vault.read(file));
+		} catch {
+			new Notice(T.noticeImportBadFile);
+			return;
+		}
+		// Our own export uses `root`; a core Bookmarks file uses `items`
+		const [raws, from]: [any[], ImportSource] = Array.isArray(parsed?.root)
+			? [parsed.root, "own"]
+			: Array.isArray(parsed?.items)
+				? [parsed.items, "core"]
+				: [[], "core"];
+		if (!raws.length) {
+			new Notice(T.noticeImportBadFile);
+			return;
+		}
+		const converted = raws.map((raw) => importItem(raw, from));
+		new ConfirmModal(this.app, T.confirmImportTitle, T.confirmImportBody(`"${file.name}"`), () => {
+			this.mergeImport(converted);
 		}).open();
 	}
 
