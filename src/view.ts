@@ -13,7 +13,7 @@ export const VIEW_TYPE = "expanded-bookmarks-view";
 // Touch gesture timings. Holding picks the row up for dragging; holding on without moving
 // opens its menu instead. Well apart, so a slow tap does neither.
 const DRAG_HOLD_MS = 400;
-const MENU_HOLD_MS = 2000;
+const MENU_HOLD_MS = 1800;
 // Movement thresholds. Before the row is picked up, a small slide already means the user is
 // scrolling, so bail out early. Once it is picked up, dragging needs a deliberate move —
 // roughly what the platforms themselves use (~8dp on Android, ~10pt on iOS).
@@ -414,7 +414,16 @@ export class BookmarksView extends ItemView {
 		document.addEventListener("pointermove", this.onPointerMove, { passive: false });
 		document.addEventListener("pointerup", this.onPointerUp);
 		document.addEventListener("pointercancel", this.onPointerUp);
+		// Scrolling can only be stopped from touchmove: preventDefault on pointermove does
+		// nothing, and flipping touch-action mid-gesture comes too late — the browser decided
+		// when the finger landed. Without this the first move starts a scroll, which cancels
+		// the pointer stream and with it the drag.
+		if (byTouch) document.addEventListener("touchmove", this.onTouchMove, { passive: false });
 	}
+
+	private onTouchMove = (e: TouchEvent): void => {
+		if (this.drag?.armed) e.preventDefault();
+	};
 
 	private onPointerMove = (e: PointerEvent): void => {
 		const d = this.drag;
@@ -467,6 +476,7 @@ export class BookmarksView extends ItemView {
 		document.removeEventListener("pointermove", this.onPointerMove);
 		document.removeEventListener("pointerup", this.onPointerUp);
 		document.removeEventListener("pointercancel", this.onPointerUp);
+		document.removeEventListener("touchmove", this.onTouchMove);
 		this.drag?.row.removeClasses(["sb-dragging", "sb-press"]);
 		this.contentEl.removeClass("sb-drag-active");
 		this.clearDropMarks();

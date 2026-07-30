@@ -191,6 +191,10 @@
 	max-width: 100%;
 	border-radius: var(--modal-radius) var(--modal-radius) 0 0;
 	animation: sb-sheet-up 180ms cubic-bezier(0.33, 1, 0.68, 1);
+	/* A sheet ends at the screen edge, where the home indicator or navigation bar sits.
+	   Lift it clear of that, so the last line of a long dialog stays readable. */
+	max-height: 85vh;
+	padding-bottom: max(var(--size-4-4), env(safe-area-inset-bottom));
 }
 
 @keyframes sb-sheet-up {
@@ -309,6 +313,11 @@
 .sb-stats {
 	max-height: 70vh;
 	overflow-y: auto;
+}
+
+/* Leave room for the sheet's own title and padding, so the list scrolls to its real end */
+.is-mobile .sb-stats {
+	max-height: 65vh;
 }
 
 .sb-stats-summary {

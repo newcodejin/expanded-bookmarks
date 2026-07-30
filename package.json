@@ -1,6 +1,5 @@
 {
 	"name": "expanded-bookmarks",
-	"version": "0.1.0",
 	"description": "Obsidian plugin: bookmarks with sorting, batch move, statistics",
 	"main": "main.js",
 	"scripts": {
