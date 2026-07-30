@@ -10,6 +10,17 @@ import { T } from "./strings";
 
 export const VIEW_TYPE = "expanded-bookmarks-view";
 
+// Touch gesture timings. Holding picks the row up for dragging; holding on without moving
+// opens its menu instead. Well apart, so a slow tap does neither.
+const DRAG_HOLD_MS = 400;
+const MENU_HOLD_MS = 2000;
+// Movement thresholds. Before the row is picked up, a small slide already means the user is
+// scrolling, so bail out early. Once it is picked up, dragging needs a deliberate move —
+// roughly what the platforms themselves use (~8dp on Android, ~10pt on iOS).
+const SCROLL_SLOP = 5;
+const TOUCH_DRAG_SLOP = 10;
+const MOUSE_DRAG_SLOP = 4;
+
 // Where a dragged item lands relative to the row it was dropped on
 type DropMode = "into" | "before" | "after";
 
@@ -45,7 +56,23 @@ export class BookmarksView extends ItemView {
 	// Whether hidden bookmarks are shown (session-only, not persisted)
 	private showHidden = false;
 	private selected = new Set<string>();
-	private dragId: string | null = null;
+	// In-flight pointer gesture: a press that may turn into a drag, or (on touch) the item menu
+	private drag: {
+		id: string;
+		pointerId: number;
+		startX: number;
+		startY: number;
+		armed: boolean;
+		active: boolean;
+		menuShown: boolean;
+		row: HTMLElement;
+	} | null = null;
+	private pressTimer: number | null = null;
+	private menuTimer: number | null = null;
+	// When the last touch press began, used to tell a touch-raised contextmenu from a real right-click
+	private lastTouchAt = 0;
+	// Set when a drag or the touch menu handled the gesture, so the click it produces is ignored
+	private suppressNextClick = false;
 
 	constructor(leaf: WorkspaceLeaf, private plugin: ExpandedBookmarksPlugin) {
 		super(leaf);
@@ -304,6 +331,11 @@ export class BookmarksView extends ItemView {
 		// Click: groups collapse/expand, everything else opens.
 		// In select mode only the checkbox toggles selection; the name still opens normally.
 		row.addEventListener("click", (e) => {
+			// A drag or the touch menu already handled this gesture
+			if (this.suppressNextClick) {
+				this.suppressNextClick = false;
+				return;
+			}
 			if (it.type === "group") {
 				it.collapsed = !it.collapsed;
 				void this.save();
@@ -312,61 +344,22 @@ export class BookmarksView extends ItemView {
 			}
 		});
 
-		row.addEventListener("contextmenu", (e) => {
-			e.preventDefault();
-			this.showItemMenu({ x: e.clientX, y: e.clientY }, it);
-		});
-
-		// Drag & drop via the HTML5 API, the same way Obsidian's own panes do it. On touch this
-		// gives the platform behaviour for free: a long press starts the drag, and holding still
-		// fires contextmenu instead, which opens the item menu above.
-		row.draggable = true;
-		row.addEventListener("dragstart", (e) => {
-			this.dragId = it.id;
-			e.dataTransfer?.setData("text/plain", it.id);
-		});
+		// Dragging and the touch menu both run on pointer events. HTML5 drag events are never
+		// produced by touch on iOS (and not dependably on Android), so the gesture is handled
+		// here: press and move to drag; on touch, hold to pick the row up, then move to drag —
+		// or keep holding still and its menu opens.
+		row.dataset.sbId = it.id;
 		// Reordering by hand only makes sense while this list is in custom order.
 		// inheritedSort is the sort this row's list is displayed with.
-		const canReorder = inheritedSort.key === "custom";
-		const clearDropMarks = () => row.removeClasses(["sb-drop-into", "sb-drop-above", "sb-drop-below"]);
+		row.dataset.sbReorder = inheritedSort.key === "custom" ? "1" : "0";
+		row.addEventListener("pointerdown", (e) => this.onPointerDown(e, row));
 
-		// A group has three zones — near the edges you drop between rows, in the middle you
-		// drop into the group. Other rows just split in half (before/after). Measured against
-		// the row's own box, since offsetY would be relative to whichever child is under the cursor.
-		const dropMode = (e: DragEvent): DropMode => {
-			const box = row.getBoundingClientRect();
-			const y = box.height ? (e.clientY - box.top) / box.height : 0.5;
-			if (it.type !== "group") return y > 0.5 ? "after" : "before";
-			if (y < 0.25) return "before";
-			if (y > 0.75) return "after";
-			return "into";
-		};
-
-		row.addEventListener("dragover", (e) => {
+		row.addEventListener("contextmenu", (e) => {
 			e.preventDefault();
-			clearDropMarks();
-			const mode = dropMode(e);
-			if (mode === "into") row.addClass("sb-drop-into");
-			else if (canReorder) row.addClass(mode === "after" ? "sb-drop-below" : "sb-drop-above");
-			// Otherwise show no insertion line: dropping here would be refused
-			else if (e.dataTransfer) e.dataTransfer.dropEffect = "none";
-		});
-		row.addEventListener("dragleave", clearDropMarks);
-		row.addEventListener("drop", (e) => {
-			e.preventDefault();
-			e.stopPropagation();
-			clearDropMarks();
-			const dragId = this.dragId;
-			this.dragId = null;
-			if (!dragId || dragId === it.id) return;
-			const mode = dropMode(e);
-			// Refuse reordering unless the list is in custom order, so a stray drag
-			// never silently switches the sort
-			if (mode !== "into" && !canReorder) {
-				new Notice(T.noticeReorderNeedsCustom);
-				return;
-			}
-			this.handleDrop(dragId, it, mode);
+			// A touch long-press raises contextmenu too; ignore it, because the gesture code
+			// opens the menu itself when the press ends without moving
+			if (Date.now() - this.lastTouchAt < 1000) return;
+			this.showItemMenu({ x: e.clientX, y: e.clientY }, it);
 		});
 
 		// Render group children
@@ -374,6 +367,158 @@ export class BookmarksView extends ItemView {
 			const childSort = it.sort ?? inheritedSort;
 			this.renderList(parent, it.items ?? [], childSort, depth + 1);
 		}
+	}
+
+	// ---------- Pointer gesture: drag, and the item menu on touch ----------
+
+	private onPointerDown(e: PointerEvent, row: HTMLElement): void {
+		// Left button only, and let the select-mode checkbox handle its own presses
+		if (e.pointerType === "mouse" && e.button !== 0) return;
+		if ((e.target as HTMLElement | null)?.closest("input")) return;
+		const byTouch = e.pointerType !== "mouse";
+		if (byTouch) this.lastTouchAt = Date.now();
+		this.drag = {
+			id: row.dataset.sbId ?? "",
+			pointerId: e.pointerId,
+			startX: e.clientX,
+			startY: e.clientY,
+			// A mouse can start dragging right away; touch has to hold first, otherwise
+			// every swipe would drag instead of scrolling the list
+			armed: !byTouch,
+			active: false,
+			menuShown: false,
+			row,
+		};
+		if (byTouch) {
+			this.pressTimer = window.setTimeout(() => {
+				this.pressTimer = null;
+				if (!this.drag) return;
+				this.drag.armed = true;
+				this.drag.row.addClass("sb-press");
+				// Block touch scrolling from here on, not once movement starts: by then the
+				// browser already owns the gesture and would cancel the drag
+				this.contentEl.addClass("sb-drag-active");
+			}, DRAG_HOLD_MS);
+			// Keep holding still, without dragging, and the item menu opens on its own
+			this.menuTimer = window.setTimeout(() => {
+				this.menuTimer = null;
+				const d = this.drag;
+				if (!d || d.active) return;
+				const item = findById(this.root, d.id);
+				if (!item) return;
+				d.menuShown = true;
+				this.suppressNextClick = true;
+				this.showItemMenu({ x: e.clientX, y: e.clientY }, item);
+			}, MENU_HOLD_MS);
+		}
+		document.addEventListener("pointermove", this.onPointerMove, { passive: false });
+		document.addEventListener("pointerup", this.onPointerUp);
+		document.addEventListener("pointercancel", this.onPointerUp);
+	}
+
+	private onPointerMove = (e: PointerEvent): void => {
+		const d = this.drag;
+		if (!d || e.pointerId !== d.pointerId) return;
+		if (d.menuShown) return;
+		const dist = Math.max(Math.abs(e.clientX - d.startX), Math.abs(e.clientY - d.startY));
+		if (!d.active) {
+			// Sliding before the row is picked up means the user is scrolling, not dragging
+			if (!d.armed) {
+				if (dist > SCROLL_SLOP) this.endDrag();
+				return;
+			}
+			if (dist <= (e.pointerType === "mouse" ? MOUSE_DRAG_SLOP : TOUCH_DRAG_SLOP)) return;
+			// A real move means a drag, so stop waiting for the menu
+			if (this.menuTimer !== null) {
+				window.clearTimeout(this.menuTimer);
+				this.menuTimer = null;
+			}
+			d.active = true;
+			d.row.addClass("sb-dragging");
+			this.contentEl.addClass("sb-drag-active");
+			this.suppressNextClick = true;
+		}
+		// Keep the touch gesture from scrolling the panel while dragging
+		e.preventDefault();
+		this.showDropTarget(e);
+		this.autoScroll(e);
+	};
+
+	private onPointerUp = (e: PointerEvent): void => {
+		const d = this.drag;
+		if (!d) return;
+		const dropped = d.active ? this.dropTargetAt(e) : null;
+		const dragId = d.id;
+		this.endDrag();
+		if (!dropped) return;
+		this.suppressNextClick = true;
+		// Refuse reordering unless the list is in custom order, so a stray drag
+		// never silently switches the sort
+		if (dropped.mode !== "into" && !dropped.canReorder) new Notice(T.noticeReorderNeedsCustom);
+		else this.handleDrop(dragId, dropped.item, dropped.mode);
+	};
+
+	private endDrag(): void {
+		for (const timer of [this.pressTimer, this.menuTimer]) {
+			if (timer !== null) window.clearTimeout(timer);
+		}
+		this.pressTimer = null;
+		this.menuTimer = null;
+		document.removeEventListener("pointermove", this.onPointerMove);
+		document.removeEventListener("pointerup", this.onPointerUp);
+		document.removeEventListener("pointercancel", this.onPointerUp);
+		this.drag?.row.removeClasses(["sb-dragging", "sb-press"]);
+		this.contentEl.removeClass("sb-drag-active");
+		this.clearDropMarks();
+		this.drag = null;
+	}
+
+	private clearDropMarks(): void {
+		for (const el of Array.from(this.contentEl.querySelectorAll(".sb-item"))) {
+			el.removeClasses(["sb-drop-into", "sb-drop-above", "sb-drop-below"]);
+		}
+	}
+
+	// Which row is under the pointer, and where the item would land on it.
+	// A group has three zones — near the edges you drop between rows, in the middle you
+	// drop into the group. Other rows just split in half (before/after).
+	private dropTargetAt(e: PointerEvent): { item: BmItem; mode: DropMode; canReorder: boolean } | null {
+		const under = document.elementFromPoint(e.clientX, e.clientY);
+		const row = under instanceof HTMLElement ? under.closest(".sb-item") : null;
+		if (!(row instanceof HTMLElement)) return null;
+		const id = row.dataset.sbId;
+		if (!id || id === this.drag?.id) return null;
+		const item = findById(this.root, id);
+		if (!item) return null;
+		const box = row.getBoundingClientRect();
+		const y = box.height ? (e.clientY - box.top) / box.height : 0.5;
+		let mode: DropMode;
+		if (item.type !== "group") mode = y > 0.5 ? "after" : "before";
+		else if (y < 0.25) mode = "before";
+		else if (y > 0.75) mode = "after";
+		else mode = "into";
+		return { item, mode, canReorder: row.dataset.sbReorder === "1" };
+	}
+
+	private showDropTarget(e: PointerEvent): void {
+		this.clearDropMarks();
+		const hit = this.dropTargetAt(e);
+		if (!hit) return;
+		const row = this.contentEl.querySelector(`.sb-item[data-sb-id="${CSS.escape(hit.item.id)}"]`);
+		if (!(row instanceof HTMLElement)) return;
+		if (hit.mode === "into") row.addClass("sb-drop-into");
+		// No insertion line where reordering would be refused
+		else if (hit.canReorder) row.addClass(hit.mode === "after" ? "sb-drop-below" : "sb-drop-above");
+	}
+
+	// Scroll the list when the pointer is dragged near its top or bottom edge
+	private autoScroll(e: PointerEvent): void {
+		const tree = this.contentEl.querySelector(".sb-tree");
+		if (!(tree instanceof HTMLElement)) return;
+		const box = tree.getBoundingClientRect();
+		const edge = 36;
+		if (e.clientY < box.top + edge) tree.scrollTop -= 12;
+		else if (e.clientY > box.bottom - edge) tree.scrollTop += 12;
 	}
 
 	// Handle a drop: "into" moves the item inside a group, "before"/"after" place it next to

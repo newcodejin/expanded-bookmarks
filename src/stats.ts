@@ -1,11 +1,12 @@
 // Bookmark statistics modal
 
-import { App, Modal } from "obsidian";
+import { App } from "obsidian";
 import { BmItem } from "./types";
 import { allGroups, flatten } from "./data";
+import { SheetModal } from "./modals";
 import { T } from "./strings";
 
-export class StatsModal extends Modal {
+export class StatsModal extends SheetModal {
 	constructor(app: App, private root: BmItem[]) {
 		super(app);
 	}

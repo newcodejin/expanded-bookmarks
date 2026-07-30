@@ -9,7 +9,7 @@ type GroupChoice = { group: BmItem | null; label: string };
 
 // Bases for this plugin's dialogs. On mobile they slide up from the bottom edge as a sheet
 // instead of appearing in the middle (see .sb-sheet in styles.css); desktop is unchanged.
-class SheetModal extends Modal {
+export class SheetModal extends Modal {
 	constructor(app: App) {
 		super(app);
 		this.containerEl.addClass("sb-sheet");

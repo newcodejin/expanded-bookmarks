@@ -120,6 +120,21 @@
 	-webkit-touch-callout: none;
 }
 
+/* Held down long enough on touch: picked up, ready to drag */
+.sb-item.sb-press {
+	background: var(--background-modifier-hover);
+}
+
+/* The row being dragged */
+.sb-item.sb-dragging {
+	opacity: 0.5;
+}
+
+/* While a row is picked up, the same finger must not scroll the list as well */
+.sb-view.sb-drag-active .sb-tree {
+	touch-action: none;
+}
+
 /* Drop indicators: block highlight when dropping into a group, insertion line otherwise */
 .sb-drop-into {
 	box-shadow: inset 0 0 0 2px var(--interactive-accent);
