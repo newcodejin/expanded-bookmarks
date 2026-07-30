@@ -191,10 +191,14 @@
 	max-width: 100%;
 	border-radius: var(--modal-radius) var(--modal-radius) 0 0;
 	animation: sb-sheet-up 180ms cubic-bezier(0.33, 1, 0.68, 1);
-	/* A sheet ends at the screen edge, where the home indicator or navigation bar sits.
-	   Lift it clear of that, so the last line of a long dialog stays readable. */
 	max-height: 85vh;
-	padding-bottom: max(var(--size-4-4), env(safe-area-inset-bottom));
+	/* The sheet meets the screen edge, so the space has to come from inside it — otherwise the
+	   last line sits under the home indicator or navigation bar. Obsidian sets `padding: 0` on
+	   phone modals, hence spelling the bottom out here.
+	   The plain value comes first as a fallback: if a device does not support env(), only the
+	   second declaration is dropped. */
+	padding-bottom: 32px;
+	padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
 }
 
 @keyframes sb-sheet-up {
