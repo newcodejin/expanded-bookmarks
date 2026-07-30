@@ -1,0 +1,364 @@
+/* Expanded Bookmarks styles */
+
+.sb-view {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: 0;
+}
+
+/* ---------- Toolbar ---------- */
+
+.sb-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 4px 6px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-wrap: wrap;
+}
+
+.sb-sort-indicator {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	white-space: nowrap;
+}
+
+.sb-hidden .sb-item-title {
+	color: var(--text-faint);
+	font-style: italic;
+}
+
+.sb-icon-btn.sb-active {
+	color: var(--interactive-accent);
+	background: var(--background-modifier-hover);
+}
+
+/* ---------- Tree ---------- */
+
+.sb-tree {
+	flex: 1;
+	overflow-y: auto;
+	padding: 4px 0;
+}
+
+.sb-item {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 8px 3px 4px;
+	border-radius: var(--radius-s);
+	cursor: pointer;
+	user-select: none;
+}
+
+.sb-item:hover {
+	background: var(--background-modifier-hover);
+}
+
+/* Currently active file, styled like the file explorer's active item */
+.sb-item.sb-active-file {
+	background: var(--nav-item-background-active, var(--background-modifier-hover));
+}
+
+/* Brief flash when a bookmark is revealed */
+.sb-item.sb-flash {
+	animation: sb-flash 1.5s ease-out;
+}
+
+@keyframes sb-flash {
+	0%, 25% { background: color-mix(in srgb, var(--interactive-accent) 35%, transparent); }
+	100% { background: transparent; }
+}
+
+.sb-item.sb-active-file .sb-item-title {
+	color: var(--nav-item-color-active, var(--text-normal));
+}
+
+.sb-item-icon {
+	display: flex;
+	align-items: center;
+	color: var(--text-muted);
+	flex-shrink: 0;
+}
+
+.sb-item-icon svg {
+	width: 16px;
+	height: 16px;
+}
+
+.sb-item-title {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: var(--font-ui-small);
+	/* Same color as file explorer items (a touch lighter than default text) */
+	color: var(--nav-item-color, var(--text-muted));
+}
+
+.sb-badge {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	background: var(--background-modifier-hover);
+	border-radius: var(--radius-s);
+	padding: 0 5px;
+	flex-shrink: 0;
+}
+
+.sb-badge-broken {
+	color: var(--text-error);
+}
+
+.sb-broken .sb-item-title {
+	color: var(--text-faint);
+	text-decoration: line-through;
+}
+
+/* Held down on touch, ready to be dragged */
+.sb-item.sb-press {
+	background: var(--background-modifier-hover);
+}
+
+/* The row being dragged */
+.sb-item.sb-dragging {
+	opacity: 0.5;
+}
+
+/* While dragging, the gesture must not scroll the panel as well */
+.sb-view.sb-drag-active .sb-tree {
+	touch-action: none;
+}
+
+/* Drop indicators: block highlight when dropping into a group, insertion line otherwise */
+.sb-drop-into {
+	box-shadow: inset 0 0 0 2px var(--interactive-accent);
+}
+
+.sb-drop-above {
+	box-shadow: inset 0 2px 0 0 var(--interactive-accent);
+}
+
+.sb-drop-below {
+	box-shadow: inset 0 -2px 0 0 var(--interactive-accent);
+}
+
+.sb-check {
+	flex-shrink: 0;
+	margin: 0;
+}
+
+
+/* ---------- Prompt modals (new group, rename, quick add) ---------- */
+
+/* The Setting has no name, so let the input take the full width */
+.sb-prompt {
+	border-top: none;
+	padding-top: 0;
+}
+
+.sb-prompt .setting-item-info {
+	display: none;
+}
+
+.sb-prompt .setting-item-control {
+	width: 100%;
+}
+
+.sb-prompt input[type="text"],
+.sb-prompt input[type="search"] {
+	width: 100%;
+}
+
+/* Add/edit modal buttons: Delete left, Save/Cancel right */
+.sb-modal-buttons {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 16px;
+}
+
+.sb-modal-buttons-right {
+	display: flex;
+	gap: 8px;
+	margin-left: auto;
+}
+
+.sb-prompt-desc {
+	margin: 0 0 10px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+/* ---------- Group picker / autocomplete suggestions ---------- */
+
+.sb-suggest-item {
+	font-size: var(--font-ui-small);
+	/* Tighter row spacing than the default suggestion list */
+	padding-top: 2px;
+	padding-bottom: 2px;
+	min-height: unset;
+}
+
+/* ---------- Bookmark filter in the core Search pane (can be disabled in settings) ---------- */
+
+.sb-search-filtered {
+	display: none;
+}
+
+/* ---------- File header bookmark marker (next to the ⋮ button) ----------
+   Our own action icon, shown only when the file is bookmarked here; a muted gray so it
+   stays distinct from the core Bookmarks plugin's marker. */
+
+.view-actions .clickable-icon.sb-header-bookmark {
+	color: var(--text-muted);
+}
+
+/* ---------- File explorer bookmark marker (can be disabled in settings) ----------
+   A small gray bookmark icon after the name — subtle, and distinct from the core
+   Bookmarks plugin's colored marker. */
+
+.nav-file-title.sb-bookmarked .nav-file-title-content::after,
+.nav-folder-title.sb-bookmarked .nav-folder-title-content::after {
+	content: "";
+	display: inline-block;
+	width: 9px;
+	height: 9px;
+	margin-left: 5px;
+	vertical-align: baseline;
+	background-color: var(--text-muted);
+	-webkit-mask: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z'/></svg>") no-repeat center / contain;
+	mask: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z'/></svg>") no-repeat center / contain;
+}
+
+/* ---------- Batch action bar ---------- */
+
+.sb-batch-bar {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+	padding: 6px 8px;
+	border-top: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+}
+
+.sb-batch-count {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+/* Action buttons, pushed right; wrap responsively as a block */
+.sb-batch-actions {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+	margin-left: auto;
+}
+
+/* Remove + Done stay together on one line */
+.sb-batch-end {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: nowrap;
+}
+
+.sb-batch-bar button {
+	font-size: var(--font-ui-smaller);
+	padding: 4px 10px;
+	margin: 0;
+}
+
+/* ---------- Statistics modal ---------- */
+
+.sb-stats {
+	max-height: 70vh;
+	overflow-y: auto;
+}
+
+.sb-stats-summary {
+	display: flex;
+	gap: 10px;
+	margin-bottom: 8px;
+}
+
+.sb-stats-card {
+	flex: 1;
+	text-align: center;
+	background: var(--background-secondary);
+	border-radius: var(--radius-m);
+	padding: 10px;
+}
+
+.sb-stats-card-value {
+	font-size: 1.6em;
+	font-weight: 700;
+	color: var(--interactive-accent);
+}
+
+.sb-stats-card-label {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.sb-stats-section {
+	margin-bottom: 4px;
+}
+
+.sb-stats-bar-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 3px 0;
+}
+
+.sb-stats-bar-label {
+	/* Group paths can be long, so give room; overflow ellipsizes with a tooltip */
+	width: 140px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: var(--font-ui-small);
+	flex-shrink: 0;
+}
+
+.sb-stats-bar-track {
+	flex: 1;
+	height: 8px;
+	background: var(--background-modifier-border);
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.sb-stats-bar-fill {
+	height: 100%;
+	background: var(--interactive-accent);
+	border-radius: 4px;
+}
+
+.sb-stats-bar-value {
+	width: 30px;
+	text-align: right;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	flex-shrink: 0;
+}
+
+.sb-stats-list-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 2px 0;
+	font-size: var(--font-ui-small);
+}
+
+.sb-stats-muted {
+	color: var(--text-faint);
+}
+
+.sb-stats .sb-broken {
+	color: var(--text-error);
+}

@@ -1,0 +1,9 @@
+{
+	"id": "expanded-bookmarks",
+	"name": "Expanded Bookmarks",
+	"version": "0.1.0",
+	"minAppVersion": "1.12.0",
+	"description": "An expanded version of the core Bookmarks: moving, sorting, search filtering, and more.",
+	"author": "newcodejin",
+	"isDesktopOnly": false
+}
