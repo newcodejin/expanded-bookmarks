@@ -142,7 +142,7 @@ export class BookmarksView extends ItemView {
 			{ id: "collapseAll", icon: () => "chevrons-down-up", onClick: () => this.collapseAll() },
 			{ id: "scrollTop", icon: () => "arrow-up-to-line", onClick: () => this.scrollTree("top") },
 			{ id: "scrollBottom", icon: () => "arrow-down-to-line", onClick: () => this.scrollTree("bottom") },
-			{ id: "resetSort", icon: () => "rotate-ccw", onClick: () => this.confirmResetSorts() },
+			{ id: "resetSort", icon: () => "rotate-ccw", onClick: () => this.resetSorts() },
 			{
 				id: "batch", icon: () => "copy-check", checked: () => this.batchMode,
 				onClick: () => {
@@ -216,12 +216,10 @@ export class BookmarksView extends ItemView {
 	}
 
 	// Put every sort back to the default: the panel to custom ascending, and each group
-	// back to following it. The manual order itself is untouched.
-	private confirmResetSorts(): void {
-		new ConfirmModal(this.app, T.confirmResetSortTitle, T.confirmResetSortBody, () => {
-			this.plugin.data.settings.defaultSort = resetAllSorts(this.root);
-			void this.save();
-		}).open();
+	// back to following it. The manual order itself is untouched, so this needs no confirming.
+	private resetSorts(): void {
+		this.plugin.data.settings.defaultSort = resetAllSorts(this.root);
+		void this.save();
 	}
 
 	private collapseAll(): void {

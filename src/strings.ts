@@ -93,10 +93,6 @@ export const T = {
 	confirmBatchRemoveBody: (n: number) =>
 		`Remove ${n} selected bookmark(s)? Groups take their contents with them. The files themselves are not deleted.`,
 
-	confirmResetSortTitle: "Reset sort orders?",
-	confirmResetSortBody:
-		"Put the panel back to Custom ascending and drop every group's own sort order. The bookmarks and their manual order stay as they are.",
-
 	// Import/export confirmations
 	confirmImportTitle: "Import bookmarks?",
 	confirmImportBody: (source: string) => `Import from ${source}? Imported items are added on top.`,
