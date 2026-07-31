@@ -1,8 +1,8 @@
 // Shared modals: group picker, folder picker, text prompt, confirm dialog
 
 import { App, FuzzyMatch, FuzzySuggestModal, Modal, Setting, TFile, TFolder } from "obsidian";
-import { allGroups } from "./data";
-import { BmItem } from "./types";
+import { orderedGroups } from "./data";
+import { BmItem, SortSpec } from "./types";
 import { T } from "./strings";
 
 type GroupChoice = { group: BmItem | null; label: string };
@@ -36,6 +36,7 @@ export class GroupPickerModal extends SheetSuggestModal<GroupChoice> {
 	constructor(
 		app: App,
 		private root: BmItem[],
+		private defaultSort: SortSpec,
 		// Group ids excluded as destinations (the item itself, etc.)
 		private excludeIds: Set<string>,
 		private onPick: (group: BmItem | null) => void
@@ -45,7 +46,8 @@ export class GroupPickerModal extends SheetSuggestModal<GroupChoice> {
 	}
 
 	getItems(): GroupChoice[] {
-		const groups: GroupChoice[] = allGroups(this.root)
+		// Listed in the panel's order, so the two never disagree
+		const groups: GroupChoice[] = orderedGroups(this.app, this.root, this.defaultSort)
 			.filter((g) => !this.excludeIds.has(g.group.id))
 			.map((g) => ({ group: g.group, label: g.label }));
 		return [{ group: null, label: T.rootGroupName }, ...groups];

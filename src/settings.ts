@@ -66,7 +66,7 @@ export class SBSettingTab extends PluginSettingTab {
 		// ----- Toolbar layout -----
 		new Setting(containerEl).setName(T.settingsToolbarHeading).setDesc(T.settingsToolbarDesc).setHeading();
 
-		const actions: ToolbarAction[] = ["sort", "newGroup", "collapseAll", "scrollTop", "scrollBottom", "batch", "stats", "showHidden", "import", "importFile", "export", "dedupe", "clean"];
+		const actions: ToolbarAction[] = ["sort", "newGroup", "collapseAll", "scrollTop", "scrollBottom", "resetSort", "batch", "stats", "showHidden", "import", "importFile", "export", "dedupe", "clean"];
 		for (const id of actions) {
 			const setting = new Setting(containerEl).setName(T.actionNames[id]);
 			// Note the actions that reach outside the bookmark panel

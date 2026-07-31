@@ -40,7 +40,7 @@ export interface BmItem {
 // Panel toolbar actions. Each can be placed on the toolbar, in the ⋮ menu, or hidden
 export type ToolbarAction =
 	| "sort" | "newGroup" | "collapseAll" | "batch"
-	| "scrollTop" | "scrollBottom"
+	| "scrollTop" | "scrollBottom" | "resetSort"
 	| "stats" | "showHidden" | "import" | "importFile" | "export" | "dedupe" | "clean";
 export type ActionPlacement = "toolbar" | "menu" | "hidden";
 
@@ -75,6 +75,7 @@ export const DEFAULT_SETTINGS: SBSettings = {
 		collapseAll: "toolbar",
 		scrollTop: "toolbar",
 		scrollBottom: "toolbar",
+		resetSort: "menu",
 		batch: "menu",
 		stats: "menu",
 		showHidden: "menu",

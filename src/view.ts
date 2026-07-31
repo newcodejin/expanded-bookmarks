@@ -3,7 +3,7 @@
 import { ItemView, Menu, Notice, TFile, WorkspaceLeaf, setIcon } from "obsidian";
 import type ExpandedBookmarksPlugin from "./main";
 import { BmItem, HIGHLIGHT_COLOR, SortKey, SortSpec, ToolbarAction, newId } from "./types";
-import { displayName, findById, findParentList, flatten, isBroken, moveItems, removeItems, sortItems } from "./data";
+import { displayName, findById, findParentList, flatten, isBroken, moveItems, removeItems, resetAllSorts, sortItems } from "./data";
 import { ConfirmModal, FolderPickerModal, GroupPickerModal, TextPromptModal } from "./modals";
 import { internalPluginInstance } from "./util";
 import { T } from "./strings";
@@ -142,6 +142,7 @@ export class BookmarksView extends ItemView {
 			{ id: "collapseAll", icon: () => "chevrons-down-up", onClick: () => this.collapseAll() },
 			{ id: "scrollTop", icon: () => "arrow-up-to-line", onClick: () => this.scrollTree("top") },
 			{ id: "scrollBottom", icon: () => "arrow-down-to-line", onClick: () => this.scrollTree("bottom") },
+			{ id: "resetSort", icon: () => "rotate-ccw", onClick: () => this.confirmResetSorts() },
 			{
 				id: "batch", icon: () => "copy-check", checked: () => this.batchMode,
 				onClick: () => {
@@ -212,6 +213,15 @@ export class BookmarksView extends ItemView {
 		const tree = this.contentEl.querySelector(".sb-tree");
 		if (!(tree instanceof HTMLElement)) return;
 		tree.scrollTop = to === "top" ? 0 : tree.scrollHeight;
+	}
+
+	// Put every sort back to the default: the panel to custom ascending, and each group
+	// back to following it. The manual order itself is untouched.
+	private confirmResetSorts(): void {
+		new ConfirmModal(this.app, T.confirmResetSortTitle, T.confirmResetSortBody, () => {
+			this.plugin.data.settings.defaultSort = resetAllSorts(this.root);
+			void this.save();
+		}).open();
 	}
 
 	private collapseAll(): void {
@@ -737,7 +747,7 @@ export class BookmarksView extends ItemView {
 
 		btn(actions, T.batchMoveToGroup, "", () => {
 			if (!this.selected.size) return;
-			new GroupPickerModal(this.app, this.root, new Set(this.selected), (group) => {
+			new GroupPickerModal(this.app, this.root, this.plugin.data.settings.defaultSort, new Set(this.selected), (group) => {
 				const n = moveItems(this.root, [...this.selected], group);
 				new Notice(T.noticeMovedBm(n));
 				this.selected.clear();

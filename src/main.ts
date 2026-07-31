@@ -310,7 +310,7 @@ export default class ExpandedBookmarksPlugin extends Plugin {
 			isEdit: false,
 			originalName: original,
 			initialTitle: "",
-			groups: groupChoices(this.data.root),
+			groups: groupChoices(this.app, this.data.root, this.data.settings.defaultSort),
 			initialGroupId: null,
 			onSubmit: ({ title, groupId }) => {
 				const group = groupId ? findById(this.data.root, groupId) : null;
@@ -328,7 +328,7 @@ export default class ExpandedBookmarksPlugin extends Plugin {
 			isEdit: true,
 			originalName: originalName(it),
 			initialTitle: it.title ?? "",
-			groups: groupChoices(this.data.root),
+			groups: groupChoices(this.app, this.data.root, this.data.settings.defaultSort),
 			initialGroupId: parentGroupId(this.data.root, it.id),
 			onSubmit: ({ title, groupId }) => {
 				it.title = title;

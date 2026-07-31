@@ -1,7 +1,7 @@
 // Bookmark tree utilities: traversal, sorting, validation. Kept UI-free for easy testing.
 
 import { App, TAbstractFile, TFile, TFolder } from "obsidian";
-import { BmItem, SortSpec, newId } from "./types";
+import { BmItem, DEFAULT_SETTINGS, SortSpec, newId } from "./types";
 import { T } from "./strings";
 
 // ---------- Import converters ----------
@@ -143,9 +143,37 @@ export function parentGroupId(root: BmItem[], id: string): string | null {
 	return result;
 }
 
-// Group choices for the add/edit dialog dropdown: a stable id plus its path label
-export function groupChoices(root: BmItem[]): { id: string; label: string }[] {
-	return allGroups(root).map((g) => ({ id: g.group.id, label: g.label }));
+// Groups in the order the panel displays them, so pickers list them exactly as the user
+// sees them. Each level is sorted with the sort actually in effect there.
+export function orderedGroups(
+	app: App,
+	root: BmItem[],
+	defaultSort: SortSpec
+): { group: BmItem; label: string }[] {
+	const out: { group: BmItem; label: string }[] = [];
+	const rec = (items: BmItem[], prefix: string, inherited: SortSpec) => {
+		for (const it of sortItems(app, items, inherited)) {
+			if (it.type !== "group") continue;
+			const label = prefix ? `${prefix} / ${it.title ?? ""}` : it.title ?? "";
+			out.push({ group: it, label });
+			if (it.items) rec(it.items, label, it.sort ?? inherited);
+		}
+	};
+	rec(root, "", defaultSort);
+	return out;
+}
+
+// The same list for the add/edit dialog dropdown: a stable id plus its path label
+export function groupChoices(app: App, root: BmItem[], defaultSort: SortSpec): { id: string; label: string }[] {
+	return orderedGroups(app, root, defaultSort).map((g) => ({ id: g.group.id, label: g.label }));
+}
+
+// Clear every sort override, and put the global order back to the default
+export function resetAllSorts(root: BmItem[]): SortSpec {
+	for (const it of flatten(root)) {
+		if (it.type === "group") it.sort = undefined;
+	}
+	return { ...DEFAULT_SETTINGS.defaultSort };
 }
 
 // ---------- Display names ----------
