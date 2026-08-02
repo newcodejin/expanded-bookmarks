@@ -214,19 +214,26 @@
 	height: calc(32px + env(safe-area-inset-bottom, 0px));
 }
 
-/* Sheets that fill the screen instead of ending mid-air. The rounded top corners stay, so the
-   sheet still reads as a sheet rather than a new screen. */
+/* Sheets that rise to just under the status bar instead of ending mid-air, the way the core
+   dialogs stop there. The rounded top corners stay, so the sheet still reads as a sheet rather
+   than a new screen. */
 .is-mobile .modal-container.sb-sheet.sb-sheet-tall .modal,
 .is-mobile .modal-container.sb-sheet.sb-sheet-tall .prompt {
 	/* Space above the sheet's own content, kept in one place so the rows and the close button
-	   move together. */
-	--sb-sheet-top: 32px;
-	--sb-sheet-top: calc(32px + env(safe-area-inset-top, 0px));
+	   move together. The status bar sits outside the sheet now, so this is only the gap the
+	   content needs from the sheet's own top edge. */
+	--sb-sheet-top: 40px;
+	/* How far down the sheet starts. env() reads 0 on devices that report no safe area, and the
+	   status bar still covers that strip there, so keep a floor that always leaves it clear. */
+	--sb-status-bar: 24px;
+	--sb-status-bar: max(24px, env(safe-area-inset-top, 0px));
 	height: 100%;
 	max-height: 100%;
+	height: calc(100% - var(--sb-status-bar));
+	max-height: calc(100% - var(--sb-status-bar));
 }
 
-/* The first row would otherwise start inside the corner curve, and under the status bar. Padding
+/* The first row would otherwise start inside the corner curve. Padding
    on the sheet is unreliable for the same reason it is at the bottom, so use a spacer here too —
    the same one the bottom edge uses, mirrored to the top. */
 .is-mobile .modal-container.sb-sheet.sb-sheet-tall .modal::before,
