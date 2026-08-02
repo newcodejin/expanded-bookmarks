@@ -46,7 +46,7 @@
 	display: flex;
 	align-items: center;
 	gap: 6px;
-	padding: 3px 8px 3px 4px;
+	padding: 3.5px 8px 3.5px 4px;
 	border-radius: var(--radius-s);
 	cursor: pointer;
 	user-select: none;
@@ -92,8 +92,8 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	/* Size and color both follow the file explorer, so the two panels read as one list */
-	font-size: var(--nav-item-size, var(--font-ui-small));
+	font-size: var(--font-ui-small);
+	/* Same color as file explorer items (a touch lighter than default text) */
 	color: var(--nav-item-color, var(--text-muted));
 }
 
@@ -189,7 +189,9 @@
 .is-mobile .modal-container.sb-sheet .prompt {
 	width: 100%;
 	max-width: 100%;
-	border-radius: var(--modal-radius) var(--modal-radius) 0 0;
+	/* Rounder than a desktop modal: only the top corners show, and a sheet reads as a sheet by
+	   how soft that edge is */
+	border-radius: 16px 16px 0 0;
 	animation: sb-sheet-up 180ms cubic-bezier(0.33, 1, 0.68, 1);
 	max-height: 85vh;
 }
@@ -210,6 +212,8 @@
    sheet still reads as a sheet rather than a new screen. */
 .is-mobile .modal-container.sb-sheet.sb-sheet-tall .modal,
 .is-mobile .modal-container.sb-sheet.sb-sheet-tall .prompt {
+	--sb-sheet-top: 32px;
+	--sb-sheet-top: calc(32px + env(safe-area-inset-top, 0px));
 	height: 100%;
 	max-height: 100%;
 }
@@ -222,8 +226,14 @@
 	content: "";
 	display: block;
 	flex: 0 0 auto;
-	height: 32px;
-	height: calc(32px + env(safe-area-inset-top, 0px));
+	height: var(--sb-sheet-top);
+}
+
+/* The close button is positioned against the sheet's top edge, so the spacer above can't push it
+   down the way it pushes the rows. Shift it by the same amount instead: a margin moves a
+   positioned element without touching Obsidian's own offset, so the button keeps its corner. */
+.is-mobile .modal-container.sb-sheet.sb-sheet-tall .modal-close-button {
+	margin-top: var(--sb-sheet-top);
 }
 
 @keyframes sb-sheet-up {
