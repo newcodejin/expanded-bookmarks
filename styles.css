@@ -206,6 +206,16 @@
 	height: calc(32px + env(safe-area-inset-bottom, 0px));
 }
 
+/* Sheets that fill the screen instead of ending mid-air. The top edge meets the status bar, so
+   the rounded corners go away and the safe area is padded out instead. */
+.is-mobile .modal-container.sb-sheet.sb-sheet-tall .modal,
+.is-mobile .modal-container.sb-sheet.sb-sheet-tall .prompt {
+	height: 100%;
+	max-height: 100%;
+	border-radius: 0;
+	padding-top: env(safe-area-inset-top, 0px);
+}
+
 @keyframes sb-sheet-up {
 	from {
 		transform: translateY(100%);

@@ -25,16 +25,19 @@ export default class ExpandedBookmarksPlugin extends Plugin {
 		this.addSettingTab(new SBSettingTab(this.app, this));
 
 		// ----- Commands -----
-		this.addCommand({ id: "open-view", name: T.cmdOpen, callback: () => void this.activateView() });
-		this.addCommand({ id: "import-core", name: T.cmdImport, callback: () => this.importFromCore() });
-		this.addCommand({ id: "import-file", name: T.cmdImportFile, callback: () => this.importFromFile() });
-		this.addCommand({ id: "export", name: T.cmdExport, callback: () => void this.exportBookmarks() });
-		this.addCommand({ id: "clean-broken", name: T.cmdClean, callback: () => void this.cleanBroken() });
-		this.addCommand({ id: "dedupe", name: T.cmdDedupe, callback: () => void this.dedupe() });
-		this.addCommand({ id: "stats", name: T.cmdStats, callback: () => this.openStats() });
+		// Every command carries an icon: the mobile toolbar draws a question mark for the ones
+		// that don't. The names match the panel's toolbar and menus, so both read the same.
+		this.addCommand({ id: "open-view", name: T.cmdOpen, icon: "bookmark", callback: () => void this.activateView() });
+		this.addCommand({ id: "import-core", name: T.cmdImport, icon: "import", callback: () => this.importFromCore() });
+		this.addCommand({ id: "import-file", name: T.cmdImportFile, icon: "file-input", callback: () => this.importFromFile() });
+		this.addCommand({ id: "export", name: T.cmdExport, icon: "download", callback: () => void this.exportBookmarks() });
+		this.addCommand({ id: "clean-broken", name: T.cmdClean, icon: "unlink", callback: () => void this.cleanBroken() });
+		this.addCommand({ id: "dedupe", name: T.cmdDedupe, icon: "copy-x", callback: () => void this.dedupe() });
+		this.addCommand({ id: "stats", name: T.cmdStats, icon: "bar-chart-2", callback: () => this.openStats() });
 		this.addCommand({
 			id: "bookmark-current",
 			name: T.cmdBookmarkCurrent,
+			icon: "bookmark",
 			checkCallback: (checking) => {
 				const file = this.app.workspace.getActiveFile();
 				if (!file) return false;
@@ -45,6 +48,7 @@ export default class ExpandedBookmarksPlugin extends Plugin {
 		this.addCommand({
 			id: "reveal-active",
 			name: T.cmdReveal,
+			icon: "search",
 			checkCallback: (checking) => {
 				const file = this.app.workspace.getActiveFile();
 				if (!file) return false;
