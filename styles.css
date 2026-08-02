@@ -92,8 +92,8 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	font-size: var(--font-ui-small);
-	/* Same color as file explorer items (a touch lighter than default text) */
+	/* Size and color both follow the file explorer, so the two panels read as one list */
+	font-size: var(--nav-item-size, var(--font-ui-small));
 	color: var(--nav-item-color, var(--text-muted));
 }
 
@@ -206,14 +206,24 @@
 	height: calc(32px + env(safe-area-inset-bottom, 0px));
 }
 
-/* Sheets that fill the screen instead of ending mid-air. The top edge meets the status bar, so
-   the rounded corners go away and the safe area is padded out instead. */
+/* Sheets that fill the screen instead of ending mid-air. The rounded top corners stay, so the
+   sheet still reads as a sheet rather than a new screen. */
 .is-mobile .modal-container.sb-sheet.sb-sheet-tall .modal,
 .is-mobile .modal-container.sb-sheet.sb-sheet-tall .prompt {
 	height: 100%;
 	max-height: 100%;
-	border-radius: 0;
-	padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* The first row would otherwise start inside the corner curve, and under the status bar. Padding
+   on the sheet is unreliable for the same reason it is at the bottom, so use a spacer here too —
+   the same one the bottom edge uses, mirrored to the top. */
+.is-mobile .modal-container.sb-sheet.sb-sheet-tall .modal::before,
+.is-mobile .modal-container.sb-sheet.sb-sheet-tall .prompt::before {
+	content: "";
+	display: block;
+	flex: 0 0 auto;
+	height: 32px;
+	height: calc(32px + env(safe-area-inset-top, 0px));
 }
 
 @keyframes sb-sheet-up {

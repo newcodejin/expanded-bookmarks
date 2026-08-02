@@ -177,8 +177,9 @@ export class BookmarkEditModal extends SheetModal {
 		super(app);
 		this.title = opts.initialTitle;
 		this.groupId = opts.initialGroupId;
-		// This one fills the screen on mobile: it has text fields, so a half-height sheet leaves
-		// the inputs sitting right above the keyboard (see .sb-sheet-tall in styles.css).
+		// This one runs nearly the full height on mobile: it has text fields, so a half-height
+		// sheet leaves the inputs sitting right above the keyboard (see .sb-sheet-tall in
+		// styles.css).
 		this.containerEl.addClass("sb-sheet-tall");
 	}
 
