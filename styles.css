@@ -54,8 +54,8 @@
 
 /* A little more room on mobile: the same row is a touch target there, not a pointer target */
 .is-mobile .sb-item {
-	padding-top: 4px;
-	padding-bottom: 4px;
+	padding-top: 4.5px;
+	padding-bottom: 4.5px;
 }
 
 .sb-item:hover {
