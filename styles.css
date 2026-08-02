@@ -52,6 +52,12 @@
 	user-select: none;
 }
 
+/* A little more room on mobile: the same row is a touch target there, not a pointer target */
+.is-mobile .sb-item {
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+
 .sb-item:hover {
 	background: var(--background-modifier-hover);
 }
@@ -191,7 +197,7 @@
 	max-width: 100%;
 	/* Rounder than a desktop modal: only the top corners show, and a sheet reads as a sheet by
 	   how soft that edge is */
-	border-radius: 16px 16px 0 0;
+	border-radius: 20px 20px 0 0;
 	animation: sb-sheet-up 180ms cubic-bezier(0.33, 1, 0.68, 1);
 	max-height: 85vh;
 }
@@ -212,8 +218,12 @@
    sheet still reads as a sheet rather than a new screen. */
 .is-mobile .modal-container.sb-sheet.sb-sheet-tall .modal,
 .is-mobile .modal-container.sb-sheet.sb-sheet-tall .prompt {
-	--sb-sheet-top: 32px;
-	--sb-sheet-top: calc(32px + env(safe-area-inset-top, 0px));
+	/* Space above the sheet's own content, kept in one place so the rows and the close button
+	   move together. env() reads 0 on devices that report no safe area, and the status bar still
+	   covers the top of the sheet there, so a fixed floor is what actually shows — the safe area
+	   only raises it further on phones that do report one. */
+	--sb-sheet-top: 48px;
+	--sb-sheet-top: max(48px, calc(env(safe-area-inset-top, 0px) + 16px));
 	height: 100%;
 	max-height: 100%;
 }
