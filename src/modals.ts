@@ -157,7 +157,7 @@ export interface BookmarkEditResult {
 
 // Add/edit a bookmark: original name (read-only), custom name, and a group dropdown.
 // The group is chosen by id, so it never lands in the wrong group (unlike free-text matching).
-// Pressing Enter saves; the group defaults to the top level, so a quick Enter adds there.
+// Pressing Enter saves; when adding, the group starts at the top level, so a quick Enter adds there.
 export class BookmarkEditModal extends SheetModal {
 	private title: string;
 	private groupId: string | null;

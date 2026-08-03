@@ -451,7 +451,8 @@ export default class ExpandedBookmarksPlugin extends Plugin {
 		}).open();
 	}
 
-	// Merge converted items into the tree, skipping targets already bookmarked at the top level
+	// Merge converted items in at the top level, skipping targets already bookmarked anywhere.
+	// Groups always come in, contents unchecked
 	private mergeImport(converted: (BmItem | null)[]): void {
 		const key = (it: BmItem) => `${it.type}|${it.path ?? ""}|${it.subpath ?? ""}|${it.query ?? ""}`;
 		const existing = new Set(flatten(this.data.root).map(key));

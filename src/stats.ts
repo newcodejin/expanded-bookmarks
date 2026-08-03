@@ -42,7 +42,7 @@ export class StatsModal extends SheetModal {
 			return true;
 		});
 
-		// Per-type counts (files/folders/searches)
+		// Per-type counts, only for the types actually present
 		this.section(contentEl, T.statsByType, (el) => {
 			const counts: Record<string, number> = {};
 			for (const b of bookmarks) counts[b.type] = (counts[b.type] ?? 0) + 1;

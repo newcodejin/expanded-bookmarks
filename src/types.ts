@@ -47,11 +47,9 @@ export type ActionPlacement = "toolbar" | "menu" | "hidden";
 export interface SBSettings {
 	// Global default sort
 	defaultSort: SortSpec;
-	// Show the current sort order in the toolbar and on groups
 	// Mark bookmarked files/folders in the file explorer
 	highlightInExplorer: boolean;
-	// Ask for confirmation before batch-moving actual files
-	// Add a "bookmarked files only" toggle to the core Search pane
+	// Add the bookmark filter toggles to the core Search pane
 	searchBookmarkFilter: boolean;
 	// Placement of each toolbar action
 	toolbarLayout: Record<ToolbarAction, ActionPlacement>;

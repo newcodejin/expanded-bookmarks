@@ -173,7 +173,7 @@ export class BookmarksView extends ItemView {
 			if (layout[a.id] !== "toolbar") continue;
 			const btn = this.iconButton(bar, a.icon(), labelOf(a), a.onClick);
 			if (a.checked?.()) btn.addClass("sb-active");
-			// The current sort order is shown right next to the sort button (can be turned off in settings)
+			// The current sort order is shown right next to the sort button
 			if (a.id === "sort") {
 				sortOnToolbar = true;
 				this.renderSortIndicator(bar);
@@ -327,12 +327,12 @@ export class BookmarksView extends ItemView {
 
 		if (broken) row.createSpan({ cls: "sb-badge sb-badge-broken", text: T.brokenBadge });
 		if (it.hidden) row.createSpan({ cls: "sb-badge", text: T.hiddenBadge });
-		// Badge a group only when its order actually differs from the global default —
-		// dragging inside a group silently sets it to custom, which would otherwise
-		// badge every group with a meaningless "Custom"
+		// Badge a group only when its own order actually differs from the global default,
+		// so a group set to what the panel already uses stays unlabelled. Direction counts
+		// too, custom included, since descending really does flip the manual order.
 		if (it.type === "group" && it.sort) {
 			const def = this.plugin.data.settings.defaultSort;
-			const differs = it.sort.key !== def.key || (it.sort.key !== "custom" && it.sort.asc !== def.asc);
+			const differs = it.sort.key !== def.key || it.sort.asc !== def.asc;
 			if (differs) row.createSpan({ cls: "sb-badge", text: this.sortLabel(it.sort) });
 		}
 
