@@ -163,6 +163,7 @@ export class BookmarksView extends ItemView {
 			{ id: "import", icon: () => "import", onClick: () => this.plugin.importFromCore() },
 			{ id: "importFile", icon: () => "file-input", onClick: () => this.plugin.importFromFile() },
 			{ id: "export", icon: () => "download", onClick: () => void this.plugin.exportBookmarks() },
+			{ id: "generateNote", icon: () => "file-text", onClick: () => void this.plugin.generateNote() },
 			{ id: "dedupe", icon: () => "copy-x", onClick: () => void this.plugin.dedupe() },
 			{ id: "clean", icon: () => "unlink", onClick: () => void this.plugin.cleanBroken() },
 		];
@@ -271,7 +272,7 @@ export class BookmarksView extends ItemView {
 		if (row instanceof HTMLElement) {
 			row.scrollIntoView({ block: "center" });
 			row.addClass("sb-flash");
-			window.setTimeout(() => row.removeClass("sb-flash"), 1500);
+			window.setTimeout(() => row.removeClass("sb-flash"), 2000);
 		}
 	}
 
@@ -626,7 +627,10 @@ export class BookmarksView extends ItemView {
 
 	private showSortMenu(pos: { x: number; y: number }, group: BmItem | null): void {
 		const menu = new Menu();
-		const current = group ? group.sort : this.plugin.data.settings.defaultSort;
+		// The sort in effect here; changing key or direction keeps the other
+		const shown = group
+			? group.sort ?? this.effectiveSort(findParentList(this.root, group.id)?.list ?? this.root)
+			: this.plugin.data.settings.defaultSort;
 		const keys: SortKey[] = ["custom", "name", "added", "mtime", "ctime", "ext"];
 
 		// Group menus get an extra "use default sort" entry
@@ -641,23 +645,21 @@ export class BookmarksView extends ItemView {
 		}
 		for (const key of keys) {
 			menu.addItem((i) =>
-				i.setTitle(T.sort[key]).setChecked(current?.key === key).onClick(() => {
-					this.setSort(group, { key, asc: current?.key === key ? current.asc : true });
+				i.setTitle(T.sort[key]).setChecked(shown.key === key).onClick(() => {
+					this.setSort(group, { key, asc: shown.asc });
 				})
 			);
 		}
 		// Direction applies to every key, including custom (descending shows the manual order bottom-up).
-		// A group without its own sort inherits the global default's key.
-		const effectiveKey = current?.key ?? this.plugin.data.settings.defaultSort.key;
 		menu.addSeparator();
 		menu.addItem((i) =>
-			i.setTitle(T.sortAsc).setChecked(current ? current.asc : true).onClick(() => {
-				this.setSort(group, { key: effectiveKey, asc: true });
+			i.setTitle(T.sortAsc).setChecked(shown.asc).onClick(() => {
+				this.setSort(group, { key: shown.key, asc: true });
 			})
 		);
 		menu.addItem((i) =>
-			i.setTitle(T.sortDesc).setChecked(current ? !current.asc : false).onClick(() => {
-				this.setSort(group, { key: effectiveKey, asc: false });
+			i.setTitle(T.sortDesc).setChecked(!shown.asc).onClick(() => {
+				this.setSort(group, { key: shown.key, asc: false });
 			})
 		);
 		menu.showAtPosition(pos);

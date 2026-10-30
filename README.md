@@ -28,14 +28,15 @@ An expanded version of the Bookmarks. — moving, sorting, search filtering, and
 - **Export bookmarks to a file** —  creates a file in your vault
 - **Remove duplicate bookmarks** — drop repeats of the same target
 - **Remove broken bookmarks** — drop bookmarks whose file is gone
+- **Generate bookmarks note** — creates a note listing your bookmarks
 
 ## Notes
 
+- Missing bookmarks, which appear very rarely, resolve on their own if you wait. They are temporary and caused by Obsidian Sync delays. 
 - The **Bookmark filter in Search** and the **file explorer marker** attach to Obsidian's UI internals. 
-- It does not conflict with the core Bookmarks plugin — they keep their data separately — but many features overlap, so disabling core Bookmarks is recommended to avoid duplication.
-- It does not automatically sync with your existing bookmarks. Use the import/export feature to sync them.
+- It does not conflict with the core Bookmarks plugin — they keep their data separately
 - Style changes take effect after restarting Obsidian.
-- Tested on Obsidian **1.12–1.13**.
+- Tested on Obsidian **1.14.5**.
 
 ## First time? Import from core Bookmarks
 
@@ -65,3 +66,8 @@ Manually: download `main.js`, `manifest.json` and `styles.css` from the release
 The UI follow Obsidian's core Bookmarks plugin.
 
 MIT.
+
+## Good Night
+
+If you run into any other problem, please send me an email.
+

@@ -1,8 +1,8 @@
 // Expanded Bookmarks plugin entry point
 
-import { Notice, Plugin, TAbstractFile, TFile, TFolder, WorkspaceLeaf } from "obsidian";
-import { BmItem, DEFAULT_SETTINGS, HIGHLIGHT_COLOR, SBData, newId } from "./types";
-import { ImportSource, applyRename, findById, findDuplicates, flatten, groupChoices, importItem, itemsPointingTo, moveItems, originalName, parentGroupId, removeItems, toCoreItem, validateAll } from "./data";
+import { Notice, Plugin, TAbstractFile, TFile, TFolder, WorkspaceLeaf, moment } from "obsidian";
+import { BmItem, DEFAULT_SETTINGS, HIGHLIGHT_COLOR, SBData, SortSpec, newId } from "./types";
+import { ImportSource, applyRename, displayName, findById, findDuplicates, flatten, groupChoices, importItem, isBroken, itemsPointingTo, moveItems, originalName, parentGroupId, removeItems, sortItems, toCoreItem, validateAll } from "./data";
 import { BookmarkEditModal, ConfirmModal, JsonFilePickerModal } from "./modals";
 import { ExplorerHighlighter } from "./explorer";
 import { SearchBookmarkFilter } from "./search-filter";
@@ -393,6 +393,55 @@ export default class ExpandedBookmarksPlugin extends Plugin {
 			new Notice(T.noticeExported(path));
 		} catch {
 			new Notice(T.noticeExportFailed);
+		}
+	}
+
+	// New note listing the bookmarks in panel order
+	async generateNote(): Promise<void> {
+		const parent = this.app.fileManager.getNewFileParent(this.app.workspace.getActiveFile()?.path ?? "");
+		const dir = parent.path === "/" ? "" : `${parent.path}/`;
+		const base = `${T.noteNamePrefix} ${moment().format("YYYY-MM-DD")}`;
+		let path = `${dir}${base}.md`;
+		for (let i = 2; this.app.vault.getAbstractFileByPath(path); i++) {
+			path = `${dir}${base} (${i}).md`;
+		}
+		const lines: string[] = [];
+		const rec = (items: BmItem[], sort: SortSpec, depth: number) => {
+			for (const it of sortItems(this.app, items, sort)) {
+				lines.push(`${"  ".repeat(depth)}- ${this.noteEntry(it, path)}${it.hidden ? ` (${T.hiddenBadge})` : ""}`);
+				if (it.type === "group") rec(it.items ?? [], it.sort ?? sort, depth + 1);
+			}
+		};
+		rec(this.data.root, this.data.settings.defaultSort, 0);
+		try {
+			const file = await this.app.vault.create(path, lines.join("\n") + (lines.length ? "\n" : ""));
+			await this.app.workspace.getLeaf().openFile(file);
+			new Notice(T.noticeNoteCreated(path));
+		} catch {
+			new Notice(T.noticeNoteFailed);
+		}
+	}
+
+	// One note line per bookmark
+	private noteEntry(it: BmItem, sourcePath: string): string {
+		switch (it.type) {
+			case "group":
+				return `**${it.title ?? ""}**`;
+			case "file": {
+				const file = it.path ? this.app.vault.getAbstractFileByPath(it.path) : null;
+				if (file instanceof TFile && !isBroken(this.app, it)) {
+					return this.app.fileManager.generateMarkdownLink(file, sourcePath, it.subpath, it.title);
+				}
+				return `${displayName(it)} (${T.brokenBadge})`;
+			}
+			case "folder":
+				return isBroken(this.app, it) ? `${displayName(it)} (${T.brokenBadge})` : it.path ?? "";
+			case "url":
+				return it.url ? `[${displayName(it)}](${it.url})` : displayName(it);
+			case "search":
+				return `\`${it.query ?? ""}\``;
+			default:
+				return displayName(it);
 		}
 	}
 

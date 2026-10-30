@@ -20,6 +20,9 @@ export class StatsModal extends SheetModal {
 		const bookmarks = all.filter((i) => i.type !== "group");
 		const groups = all.filter((i) => i.type === "group");
 
+		// Notes in the vault (.md)
+		this.card(contentEl.createDiv({ cls: "sb-stats-summary" }), T.statsTotalFiles, String(this.app.vault.getMarkdownFiles().length));
+
 		// Summary cards
 		const summary = contentEl.createDiv({ cls: "sb-stats-summary" });
 		this.card(summary, T.statsTotal, String(bookmarks.length));

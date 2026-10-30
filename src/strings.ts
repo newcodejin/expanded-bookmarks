@@ -109,6 +109,10 @@ export const T = {
 	noticeImportBadFile: "That file is not a recognized bookmarks JSON",
 	noticeExported: (path: string) => `Exported to "${path}"`,
 	noticeExportFailed: "Could not create the export file",
+	// Bookmarks note
+	noticeNoteCreated: (path: string) => `Created "${path}"`,
+	noticeNoteFailed: "Could not create the bookmarks note",
+	noteNamePrefix: "Bookmarks note",
 	noticeCleaned: (n: number) => `Removed ${n} broken bookmark(s)`,
 	noticeNoBroken: "No broken bookmarks found",
 	noticeDupsRemoved: (n: number) => `Removed ${n} duplicate bookmark(s)`,
@@ -135,6 +139,7 @@ export const T = {
 
 	// Statistics modal
 	statsTitle: "Bookmark statistics",
+	statsTotalFiles: "Total files (.md)",
 	statsTotal: "Total bookmarks",
 	statsGroups: "Groups",
 	statsByType: "By type",
@@ -168,6 +173,7 @@ export const T = {
 		import: "Import from core Bookmarks",
 		importFile: "Import from a file",
 		export: "Export bookmarks to a file",
+		generateNote: "Generate bookmarks note",
 		dedupe: "Remove duplicate bookmarks",
 		clean: "Remove broken bookmarks",
 	} as Record<string, string>,

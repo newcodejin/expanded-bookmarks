@@ -69,7 +69,7 @@
 
 /* Brief flash when a bookmark is revealed */
 .sb-item.sb-flash {
-	animation: sb-flash 1.5s ease-out;
+	animation: sb-flash 2s ease-out;
 }
 
 @keyframes sb-flash {

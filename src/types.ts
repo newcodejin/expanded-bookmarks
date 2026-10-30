@@ -41,7 +41,7 @@ export interface BmItem {
 export type ToolbarAction =
 	| "sort" | "newGroup" | "collapseAll" | "batch"
 	| "scrollTop" | "scrollBottom" | "resetSort"
-	| "stats" | "showHidden" | "import" | "importFile" | "export" | "dedupe" | "clean";
+	| "stats" | "showHidden" | "import" | "importFile" | "export" | "generateNote" | "dedupe" | "clean";
 export type ActionPlacement = "toolbar" | "menu" | "hidden";
 
 export interface SBSettings {
@@ -80,6 +80,7 @@ export const DEFAULT_SETTINGS: SBSettings = {
 		import: "menu",
 		importFile: "menu",
 		export: "menu",
+		generateNote: "menu",
 		dedupe: "menu",
 		clean: "menu",
 	},
