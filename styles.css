@@ -34,6 +34,29 @@
 	background: var(--background-modifier-hover);
 }
 
+/* ---------- Bookmark name search ---------- */
+
+.sb-search-bar {
+	padding: 6px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sb-search-bar .search-input-container {
+	width: 100%;
+	margin: 0;
+}
+
+.sb-search-match {
+	color: var(--text-accent);
+	font-weight: var(--font-semibold);
+}
+
+.sb-search-empty {
+	padding: 8px 12px;
+	color: var(--text-faint);
+	font-size: var(--font-ui-small);
+}
+
 /* ---------- Tree ---------- */
 
 .sb-tree {

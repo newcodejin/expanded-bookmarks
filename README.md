@@ -18,6 +18,7 @@ An expanded version of the Bookmarks. — moving, sorting, search filtering, and
   ※ Works in the core file explorer
 - **Export folder** — where exported bookmark files are saved; blank means the vault root.
 - **Panel toolbar** — choose where each action appears: a toolbar button, the ⋮ menu, or hidden.
+- **Bookmark name search** — filter the panel by bookmark name
 - **Collapse all** — collapse or expand every group
 - **Scroll to top** — jump to the start of the list
 - **Scroll to bottom** — jump to the end of the list
@@ -63,7 +64,7 @@ Manually: download `main.js`, `manifest.json` and `styles.css` from the release
 
 ## License
 
-The UI follow Obsidian's core Bookmarks plugin.
+The UI follows Obsidian's core Bookmarks plugin.
 
 MIT.
 

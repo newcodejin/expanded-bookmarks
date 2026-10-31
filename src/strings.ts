@@ -9,6 +9,10 @@ export const T = {
 	showHiddenOn: "Show hidden bookmarks",
 	showHiddenOff: "Stop showing hidden bookmarks",
 
+	// Panel bookmark name search
+	searchPlaceholder: "Search bookmark names...",
+	searchNoResults: "No matching bookmark names",
+
 	// Bookmark filter toggle in the core Search pane
 	searchFilterButton: "Show only bookmarked files",
 	searchExcludeButton: "Hide bookmarked files",
@@ -52,7 +56,7 @@ export const T = {
 
 	// Add/edit bookmark modal — one encompassing title for both cases
 	modalTitle: "Edit Expanded Bookmark",
-	fieldOriginalName: "File",
+	fieldOriginalName: "File name",
 	fieldBookmarkName: "Bookmark name",
 	fieldGroup: "Group",
 	fieldGroupNone: "(No group)",
@@ -124,6 +128,7 @@ export const T = {
 	noticeAdded: (name: string) => `Bookmarked "${name}"`,
 	noticeAlreadyBookmarked: "Already bookmarked",
 	noticeReorderNeedsCustom: "Switch the sort order to Custom to rearrange by hand",
+	noticeReorderWhileSearching: "Clear the search to rearrange by hand",
 	noticeNotBookmarked: "This file is not bookmarked here",
 	noticeBrokenTarget: "Bookmark target no longer exists",
 
@@ -162,6 +167,7 @@ export const T = {
 	placementHidden: "Hidden",
 	actionNames: {
 		sort: "Sort order",
+		search: "Bookmark name search",
 		newGroup: "New group",
 		collapseAll: "Collapse all",
 		scrollTop: "Scroll to top",

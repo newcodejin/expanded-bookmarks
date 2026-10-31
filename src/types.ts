@@ -39,7 +39,7 @@ export interface BmItem {
 
 // Panel toolbar actions. Each can be placed on the toolbar, in the ⋮ menu, or hidden
 export type ToolbarAction =
-	| "sort" | "newGroup" | "collapseAll" | "batch"
+	| "sort" | "search" | "newGroup" | "collapseAll" | "batch"
 	| "scrollTop" | "scrollBottom" | "resetSort"
 	| "stats" | "showHidden" | "import" | "importFile" | "export" | "generateNote" | "dedupe" | "clean";
 export type ActionPlacement = "toolbar" | "menu" | "hidden";
@@ -69,6 +69,7 @@ export const DEFAULT_SETTINGS: SBSettings = {
 	// Sort comes first, then the navigation actions; everything else lives in the ⋮ menu
 	toolbarLayout: {
 		sort: "toolbar",
+		search: "menu",
 		newGroup: "menu",
 		collapseAll: "toolbar",
 		scrollTop: "toolbar",

@@ -1,6 +1,6 @@
 // Sidebar bookmarks panel
 
-import { ItemView, Menu, Notice, TFile, WorkspaceLeaf, setIcon } from "obsidian";
+import { ItemView, Menu, Notice, SearchComponent, SearchResult, TFile, WorkspaceLeaf, prepareSimpleSearch, setIcon } from "obsidian";
 import type ExpandedBookmarksPlugin from "./main";
 import { BmItem, HIGHLIGHT_COLOR, SortKey, SortSpec, ToolbarAction, newId } from "./types";
 import { displayName, findById, findParentList, flatten, isBroken, moveItems, removeItems, resetAllSorts, sortItems } from "./data";
@@ -74,6 +74,14 @@ export class BookmarksView extends ItemView {
 	// Set when a drag or the touch menu handled the gesture, so the click it produces is ignored
 	private suppressNextClick = false;
 
+	// Name search state (session-only)
+	private searchOpen = false;
+	private searchQuery = "";
+	private searchVisible: Set<string> | null = null;
+	private searchExpanded = new Set<string>();
+	private searchCollapsed = new Set<string>();
+	private matcher: ((text: string) => SearchResult | null) | null = null;
+
 	constructor(leaf: WorkspaceLeaf, private plugin: ExpandedBookmarksPlugin) {
 		super(leaf);
 	}
@@ -103,17 +111,145 @@ export class BookmarksView extends ItemView {
 		// (drag & drop, collapsing a group, any save — all re-render)
 		const prev = el.querySelector(".sb-tree");
 		const scrollTop = prev instanceof HTMLElement ? prev.scrollTop : 0;
+		// Keep search focus across re-renders
+		const prevInput = el.querySelector(".sb-search-bar input");
+		const refocus =
+			prevInput instanceof HTMLInputElement && prevInput === prevInput.ownerDocument.activeElement
+				? { start: prevInput.selectionStart, end: prevInput.selectionEnd }
+				: null;
 
 		el.empty();
 		el.addClass("sb-view");
 
 		this.renderToolbar(el);
+		if (this.searchOpen) this.renderSearchBar(el, refocus);
 
 		const treeEl = el.createDiv({ cls: "sb-tree" });
-		this.renderList(treeEl, this.root, this.plugin.data.settings.defaultSort, 0);
+		this.renderTree(treeEl);
 		treeEl.scrollTop = scrollTop;
 
 		if (this.batchMode) this.renderBatchBar(el);
+	}
+
+	// ---------- Bookmark name search ----------
+
+	private renderTree(treeEl: HTMLElement): void {
+		treeEl.empty();
+		this.computeSearch();
+		this.renderList(treeEl, this.root, this.plugin.data.settings.defaultSort, 0);
+		if (this.searchVisible && !this.searchVisible.size) {
+			treeEl.createDiv({ cls: "sb-search-empty", text: T.searchNoResults });
+		}
+	}
+
+	// Redraw only the tree
+	private refreshTree(resetScroll = false): void {
+		const tree = this.contentEl.querySelector(".sb-tree");
+		if (!(tree instanceof HTMLElement)) {
+			this.render();
+			return;
+		}
+		const top = resetScroll ? 0 : tree.scrollTop;
+		this.renderTree(tree);
+		tree.scrollTop = top;
+	}
+
+	private toggleSearch(): void {
+		if (this.searchOpen) this.closeSearch();
+		else this.openSearch();
+	}
+
+	private openSearch(): void {
+		this.searchOpen = true;
+		this.render();
+		// Focus now (iOS shows the keyboard only inside the tap), and again past the ⋮ menu closing
+		const focus = () => {
+			const input = this.contentEl.querySelector(".sb-search-bar input");
+			if (input instanceof HTMLInputElement) input.focus();
+		};
+		focus();
+		window.setTimeout(focus, 0);
+	}
+
+	// Also clears the filter
+	private closeSearch(): void {
+		this.searchOpen = false;
+		this.searchQuery = "";
+		this.searchCollapsed.clear();
+		this.render();
+	}
+
+	private renderSearchBar(parent: HTMLElement, refocus: { start: number | null; end: number | null } | null): void {
+		const bar = parent.createDiv({ cls: "sb-search-bar" });
+		const search = new SearchComponent(bar);
+		search.setPlaceholder(T.searchPlaceholder).setValue(this.searchQuery);
+		search.onChange((v) => {
+			this.searchQuery = v;
+			this.searchCollapsed.clear();
+			this.refreshTree(true);
+		});
+		search.inputEl.addEventListener("keydown", (e) => {
+			if (e.key === "Escape" && !e.isComposing) {
+				e.preventDefault();
+				e.stopPropagation();
+				this.closeSearch();
+			}
+		});
+		if (refocus) {
+			search.inputEl.focus();
+			search.inputEl.setSelectionRange(refocus.start, refocus.end);
+		}
+	}
+
+	// Matches plus their ancestors; a matching group shows all its contents
+	private computeSearch(): void {
+		const q = this.searchOpen ? this.searchQuery.trim() : "";
+		this.searchExpanded.clear();
+		if (!q) {
+			this.searchVisible = null;
+			this.matcher = null;
+			return;
+		}
+		const match = prepareSimpleSearch(q);
+		this.matcher = match;
+		const visible = new Set<string>();
+		const rec = (items: BmItem[], insideMatch: boolean): boolean => {
+			let any = false;
+			for (const it of items) {
+				if (it.hidden && !this.showHidden) continue;
+				const self = insideMatch || match(displayName(it)) !== null;
+				const child = it.type === "group" ? rec(it.items ?? [], self) : false;
+				if (self || child) {
+					visible.add(it.id);
+					any = true;
+					if (child) this.searchExpanded.add(it.id);
+				}
+			}
+			return any;
+		};
+		rec(this.root, false);
+		this.searchVisible = visible;
+	}
+
+	// While searching, the search decides
+	private isOpen(it: BmItem): boolean {
+		if (this.searchVisible) return this.searchExpanded.has(it.id) && !this.searchCollapsed.has(it.id);
+		return !it.collapsed;
+	}
+
+	// Name with matches highlighted
+	private renderTitle(el: HTMLElement, it: BmItem): void {
+		const name = displayName(it);
+		const ranges = [...(this.matcher?.(name)?.matches ?? [])].sort((x, y) => x[0] - y[0]);
+		let pos = 0;
+		for (const [a, b] of ranges) {
+			if (b <= pos) continue;
+			const from = Math.max(a, pos);
+			if (from > pos) el.appendText(name.slice(pos, from));
+			el.createSpan({ cls: "sb-search-match", text: name.slice(from, b) });
+			pos = b;
+		}
+		if (pos < name.length) el.appendText(name.slice(pos));
 	}
 
 	private renderToolbar(parent: HTMLElement): void {
@@ -130,6 +266,7 @@ export class BookmarksView extends ItemView {
 			onClick: (e: MouseEvent) => void;
 		}[] = [
 			{ id: "sort", icon: () => "arrow-up-narrow-wide", onClick: (e) => this.showSortMenu({ x: e.clientX, y: e.clientY }, null) },
+			{ id: "search", icon: () => "search", checked: () => this.searchOpen, onClick: () => this.toggleSearch() },
 			{
 				id: "newGroup", icon: () => "folder-plus",
 				onClick: () => {
@@ -224,6 +361,14 @@ export class BookmarksView extends ItemView {
 	}
 
 	private collapseAll(): void {
+		// While searching, affects the search view only
+		if (this.searchVisible) {
+			const anyOpen = [...this.searchExpanded].some((id) => !this.searchCollapsed.has(id));
+			if (anyOpen) for (const id of this.searchExpanded) this.searchCollapsed.add(id);
+			else this.searchCollapsed.clear();
+			this.refreshTree();
+			return;
+		}
 		let anyOpen = false;
 		const rec = (items: BmItem[]) => {
 			for (const it of items) {
@@ -265,6 +410,10 @@ export class BookmarksView extends ItemView {
 		}
 		// A hidden bookmark must be shown to be revealed
 		if ((target as BmItem | null)?.hidden) this.showHidden = true;
+		// Close the search so the row is visible
+		this.searchOpen = false;
+		this.searchQuery = "";
+		this.searchCollapsed.clear();
 		void this.plugin.saveAll();
 		this.render();
 
@@ -288,6 +437,7 @@ export class BookmarksView extends ItemView {
 		const sorted = sortItems(this.app, items, inheritedSort);
 		for (const it of sorted) {
 			if (it.hidden && !this.showHidden) continue;
+			if (this.searchVisible && !this.searchVisible.has(it.id)) continue;
 			this.renderItem(parent, it, inheritedSort, depth);
 		}
 	}
@@ -319,12 +469,12 @@ export class BookmarksView extends ItemView {
 
 		const iconEl = row.createDiv({ cls: "sb-item-icon" });
 		if (it.type === "group") {
-			setIcon(iconEl, it.collapsed ? "chevron-right" : "chevron-down");
+			setIcon(iconEl, this.isOpen(it) ? "chevron-down" : "chevron-right");
 		} else {
 			setIcon(iconEl, it.subpath ? "heading" : itemIcon(it));
 		}
 
-		row.createSpan({ cls: "sb-item-title", text: displayName(it) });
+		this.renderTitle(row.createSpan({ cls: "sb-item-title" }), it);
 
 		if (broken) row.createSpan({ cls: "sb-badge sb-badge-broken", text: T.brokenBadge });
 		if (it.hidden) row.createSpan({ cls: "sb-badge", text: T.hiddenBadge });
@@ -346,6 +496,13 @@ export class BookmarksView extends ItemView {
 				return;
 			}
 			if (it.type === "group") {
+				// While searching, affects the search view only
+				if (this.searchVisible) {
+					if (this.searchCollapsed.has(it.id)) this.searchCollapsed.delete(it.id);
+					else this.searchCollapsed.add(it.id);
+					this.refreshTree();
+					return;
+				}
 				it.collapsed = !it.collapsed;
 				void this.save();
 			} else {
@@ -358,9 +515,9 @@ export class BookmarksView extends ItemView {
 		// here: press and move to drag; on touch, hold to pick the row up, then move to drag —
 		// or keep holding still and its menu opens.
 		row.dataset.sbId = it.id;
-		// Reordering by hand only makes sense while this list is in custom order.
+		// Reordering by hand only makes sense in custom order, outside a search.
 		// inheritedSort is the sort this row's list is displayed with.
-		row.dataset.sbReorder = inheritedSort.key === "custom" ? "1" : "0";
+		row.dataset.sbReorder = inheritedSort.key === "custom" && !this.searchVisible ? "1" : "0";
 		row.addEventListener("pointerdown", (e) => this.onPointerDown(e, row));
 
 		row.addEventListener("contextmenu", (e) => {
@@ -372,7 +529,7 @@ export class BookmarksView extends ItemView {
 		});
 
 		// Render group children
-		if (it.type === "group" && !it.collapsed) {
+		if (it.type === "group" && this.isOpen(it)) {
 			const childSort = it.sort ?? inheritedSort;
 			this.renderList(parent, it.items ?? [], childSort, depth + 1);
 		}
@@ -470,10 +627,13 @@ export class BookmarksView extends ItemView {
 		this.endDrag();
 		if (!dropped) return;
 		this.suppressNextClick = true;
-		// Refuse reordering unless the list is in custom order, so a stray drag
+		// Refuse reordering unless the list is in custom order (and not searched), so a stray drag
 		// never silently switches the sort
-		if (dropped.mode !== "into" && !dropped.canReorder) new Notice(T.noticeReorderNeedsCustom);
-		else this.handleDrop(dragId, dropped.item, dropped.mode);
+		if (dropped.mode !== "into" && !dropped.canReorder) {
+			new Notice(this.searchVisible ? T.noticeReorderWhileSearching : T.noticeReorderNeedsCustom);
+		} else {
+			this.handleDrop(dragId, dropped.item, dropped.mode);
+		}
 	};
 
 	private endDrag(): void {
